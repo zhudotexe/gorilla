@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from kani import AIFunction, ChatMessage, ChatRole, ToolCall
-from kani.ext.vllm import VLLMServerEngine
-from kani.model_specific.qwen3 import Qwen3ThinkingParser
+from kani.ext.vllm import VLLMOpenAIEngine, VLLMServerEngine
+from kani.model_specific.gpt_oss import GPTOSSParser
+from kani.model_specific.qwen3 import Qwen3Parser
 from kani.utils.cli import create_engine_from_cli_arg, print_width
 from kani.utils.message_formatters import assistant_message_contents_thinking
 
@@ -64,7 +65,7 @@ class KaniBaseHandler(BaseHandler):
         msgs = []
 
         async def _full_round():
-            async for msg in ai.full_round(query=None):
+            async for msg in ai.full_round(query=None, max_function_rounds=inference_data.get("max_function_rounds")):
                 if text := assistant_message_contents_thinking(msg, show_args=True, show_reasoning=True):
                     print_width(text, prefix="AI: ")
                 msgs.append(msg)
@@ -128,14 +129,14 @@ class KaniBaseHandler(BaseHandler):
         return inference_data
 
     def _parse_query_response_FC(self, api_response: Any) -> dict:
-        # get all the valid tool calls
-        valid_tc_ids: list[str] = [
-            m.tool_call_id for m in api_response if m.role == ChatRole.FUNCTION and not m.is_tool_call_error
+        # get all the tool calls that were not retried by kani
+        invalid_tc_ids: list[str] = [
+            m.tool_call_id for m in api_response if m.role == ChatRole.FUNCTION and m.is_tool_call_error
         ]
         all_tcs: list[ToolCall] = itertools.chain.from_iterable(
             m.tool_calls for m in api_response if m.role == ChatRole.ASSISTANT and m.tool_calls
         )
-        valid_tcs = [tc for tc in all_tcs if tc.id in valid_tc_ids]
+        valid_tcs = [tc for tc in all_tcs if tc.id not in invalid_tc_ids]
 
         model_responses = [{tc.function.name: tc.function.arguments} for tc in valid_tcs]
         tool_call_ids = [tc.id for tc in valid_tcs]
@@ -199,7 +200,66 @@ class KaniHandler(KaniBaseHandler):
         super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
 
 
+class KaniNoRetryHandler(KaniBaseHandler):
+    def _query_FC(self, inference_data: dict):
+        inference_data["max_function_rounds"] = 0
+        return super()._query_FC(inference_data)
+
+    def _compile_tools(self, inference_data: dict, test_entry: dict) -> dict:
+        functions: list = test_entry["function"]
+
+        oai_tools = convert_to_tool(functions, GORILLA_TO_OPENAPI, self.model_style)
+
+        # convert openai-spec tools to AIFunctions
+        # we want after=user so that we delegate the actual call to BFCL
+        tools = []
+        for oai_tool in oai_tools:
+            oai_tool = oai_tool["function"]
+            aif = AIFunction(
+                lambda *_, **__: None,
+                after=ChatRole.USER,
+                name=oai_tool["name"],
+                desc=oai_tool["description"],
+                json_schema=oai_tool["parameters"],
+            )
+            tools.append(aif)
+
+        inference_data["tools"] = tools
+
+        return inference_data
+
+
 # ===== model impls =====
+class KaniLlama31VLLMHandler(KaniBaseHandler):
+    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        engine = VLLMOpenAIEngine(
+            model_id=model_name,
+            vllm_args={
+                "tensor_parallel_size": 8,
+                "enable_chunked_prefill": True,
+                "enable-auto-tool-choice": True,
+                "tool-call-parser": "llama3_json",
+            },
+            temperature=temperature,
+        )
+        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+
+
+class KaniLlama32VLLMHandler(KaniBaseHandler):
+    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        engine = VLLMOpenAIEngine(
+            model_id=model_name,
+            vllm_args={
+                "tensor_parallel_size": 8,
+                "enable_chunked_prefill": True,
+                "enable-auto-tool-choice": True,
+                "tool-call-parser": "pythonic",
+            },
+            temperature=temperature,
+        )
+        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+
+
 class KaniQwen3VLLMHandler(KaniBaseHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
         engine = VLLMServerEngine(
@@ -211,5 +271,81 @@ class KaniQwen3VLLMHandler(KaniBaseHandler):
             temperature=temperature,
         )
         engine.model = model_name
-        engine = Qwen3ThinkingParser(engine)
+        engine = Qwen3Parser(engine)
+        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+
+
+class KaniGPTOSSVLLMHandler(KaniBaseHandler):
+    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        engine = VLLMServerEngine(
+            model_id=model_name,
+            vllm_args={
+                "tensor_parallel_size": 8,
+                "enable_chunked_prefill": True,
+            },
+            temperature=temperature,
+        )
+        engine.model = model_name
+        engine = GPTOSSParser(engine)
+        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+
+
+# no retry
+class KaniLlama31VLLMNoRetryHandler(KaniNoRetryHandler):
+    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        engine = VLLMOpenAIEngine(
+            model_id=model_name,
+            vllm_args={
+                "tensor_parallel_size": 8,
+                "enable_chunked_prefill": True,
+                "enable-auto-tool-choice": True,
+                "tool-call-parser": "llama3_json",
+            },
+            temperature=temperature,
+        )
+        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+
+
+class KaniLlama32VLLMNoRetryHandler(KaniNoRetryHandler):
+    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        engine = VLLMOpenAIEngine(
+            model_id=model_name,
+            vllm_args={
+                "tensor_parallel_size": 8,
+                "enable_chunked_prefill": True,
+                "enable-auto-tool-choice": True,
+                "tool-call-parser": "pythonic",
+            },
+            temperature=temperature,
+        )
+        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+
+
+class KaniQwen3VLLMNoRetryHandler(KaniNoRetryHandler):
+    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        engine = VLLMServerEngine(
+            model_id=model_name,
+            vllm_args={
+                "tensor_parallel_size": 8,
+                "enable_chunked_prefill": True,
+            },
+            temperature=temperature,
+        )
+        engine.model = model_name
+        engine = Qwen3Parser(engine)
+        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+
+
+class KaniGPTOSSVLLMNoRetryHandler(KaniNoRetryHandler):
+    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        engine = VLLMServerEngine(
+            model_id=model_name,
+            vllm_args={
+                "tensor_parallel_size": 8,
+                "enable_chunked_prefill": True,
+            },
+            temperature=temperature,
+        )
+        engine.model = model_name
+        engine = GPTOSSParser(engine)
         super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
