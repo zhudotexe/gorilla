@@ -40,7 +40,7 @@ MODEL_KEYS = [
     ("meta-llama/Llama-3.2-1B-Instruct-FC", 32),
     ("meta-llama/Llama-3.2-3B-Instruct-FC", 32),
     ("meta-llama/Llama-3.1-8B-Instruct-FC", 16),
-    ("openai/gpt-oss-20b", 8),
+    ("openai/gpt-oss-20b-FC", 8),
 ]
 
 SLURM_ROOT = Path(__file__).parent
