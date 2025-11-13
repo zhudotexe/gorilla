@@ -32,6 +32,7 @@ DEBUG_PRINT = False
 
 class KaniBaseHandler(BaseHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, engine=None, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         super().__init__(model_name, temperature, registry_name, is_fc_model, **kwargs)
         # compat
         self.model_style = ModelStyle.OPENAI_COMPLETIONS
