@@ -2063,6 +2063,18 @@ third_party_inference_model_map = {
         is_fc_model=True,
         underscore_to_dot=True,
     ),
+    "kani-qwen3-4b-thinking-FC": ModelConfig(
+        model_name="Qwen/Qwen3-4B-Thinking-2507",
+        display_name="Kani + Qwen3-4B-Thinking (FC)",
+        url="https://huggingface.co/Qwen/Qwen3-4B-Thinking-2507",
+        org="Qwen",
+        license="apache-2.0",
+        model_handler=KaniQwen3VLLMHandler,
+        input_price=None,
+        output_price=None,
+        is_fc_model=True,
+        underscore_to_dot=True,
+    ),
 }
 
 
@@ -2079,3 +2091,10 @@ MODEL_CONFIG_MAPPING = {
 # -H "Content-Type: application/json" \
 # -H "Authorization: Bearer YOUR_API_KEY" \
 # -d '{"model": "Qwen/Qwen3-4B-Thinking-2507", "prompt": "Say this is a test", "max_tokens": null}'
+
+# models:
+# qwen3 (thinking, instruct) 4b -- vllm tool parser hermes
+# mistral (which ones) -- vllm tool parser mistral
+# llama 3 (7b)? -- vllm tool parser llama
+# gptoss 20b?
+# also baselines w/o kani

@@ -19,7 +19,7 @@ def create_field_type(model_name, field_name, field_schema):
     field_type = None
     match field_schema:
         case {"enum": options}:
-            field_type = Enum(field_name, options)
+            field_type = Enum(field_name, {v: v for v in options})
         case {"type": "string"}:
             field_type = str
         case {"type": "integer"}:

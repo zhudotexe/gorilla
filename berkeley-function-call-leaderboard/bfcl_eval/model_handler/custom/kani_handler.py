@@ -1,7 +1,9 @@
 import asyncio
+import functools
 import itertools
 import threading
 import time
+from pathlib import Path
 from typing import Any
 
 from kani import AIFunction, ChatMessage, ChatRole, ToolCall
@@ -21,6 +23,8 @@ from bfcl_eval.model_handler.utils import (
     extract_system_prompt,
 )
 from bfcl_eval.utils import contain_multi_turn_interaction
+
+REPO_ROOT = Path(__file__).parents[3]
 
 
 class KaniBaseHandler(BaseHandler):
@@ -54,6 +58,7 @@ class KaniBaseHandler(BaseHandler):
         if not hasattr(self.thread_local, "loop"):
             self.thread_local.loop = asyncio.new_event_loop()
 
+        # main generation
         ai = TokenCountingKani(self.engine, system_prompt=system_prompt, chat_history=messages, functions=tools)
         msgs = []
 
@@ -65,9 +70,17 @@ class KaniBaseHandler(BaseHandler):
         self.thread_local.loop.run_until_complete(_full_round())
         end_time = time.monotonic()
 
+        # save for logging
+        log_dir = REPO_ROOT / "result" / self.registry_dir_name / "_kani_logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        ai.save(log_dir / f"{inference_data['test_entry_id']}__round_{inference_data['round_num']}.json")
+        inference_data["round_num"] += 1
+
         return msgs, end_time - start_time
 
     def _pre_query_processing_FC(self, inference_data: dict, test_entry: dict) -> dict:
+        inference_data["test_entry_id"] = test_entry["id"]
+        inference_data["round_num"] = 0
         inference_data["messages"] = []
 
         # extract system prompt to pin
@@ -86,6 +99,10 @@ class KaniBaseHandler(BaseHandler):
 
         oai_tools = convert_to_tool(functions, GORILLA_TO_OPENAPI, self.model_style)
 
+        def _validate_model(model, **kwargs):
+            model.model_validate(kwargs)
+            return "[dummy response]"
+
         # convert openai-spec tools to AIFunctions
         # we want after=user so that we delegate the actual call to BFCL
         tools = []
@@ -100,12 +117,7 @@ class KaniBaseHandler(BaseHandler):
             )
             # hack: explicitly set aif.inner to a pydantic model's validate
             val_model = create_pydantic_model_from_json_schema(oai_tool["name"], oai_tool["parameters"])
-
-            def _inner(**kwargs):
-                val_model.model_validate(kwargs)
-                return "[dummy response]"
-
-            aif.inner = _inner
+            aif.inner = functools.partial(_validate_model, val_model)
             tools.append(aif)
 
         inference_data["tools"] = tools
