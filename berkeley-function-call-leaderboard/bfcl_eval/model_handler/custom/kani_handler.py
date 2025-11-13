@@ -27,6 +27,7 @@ from bfcl_eval.model_handler.utils import (
 from bfcl_eval.utils import contain_multi_turn_interaction
 
 REPO_ROOT = Path(__file__).parents[3]
+DEBUG_PRINT = False
 
 
 class KaniBaseHandler(BaseHandler):
@@ -66,7 +67,9 @@ class KaniBaseHandler(BaseHandler):
 
         async def _full_round():
             async for msg in ai.full_round(query=None, max_function_rounds=inference_data.get("max_function_rounds")):
-                if text := assistant_message_contents_thinking(msg, show_args=True, show_reasoning=True):
+                if DEBUG_PRINT and (
+                    text := assistant_message_contents_thinking(msg, show_args=True, show_reasoning=True)
+                ):
                     print_width(text, prefix="AI: ")
                 msgs.append(msg)
 
@@ -156,14 +159,16 @@ class KaniBaseHandler(BaseHandler):
     def add_first_turn_message_FC(self, inference_data: dict, first_turn_message: list[dict]) -> dict:
         for m in first_turn_message:
             msg = ChatMessage.model_validate(m)
-            print_width(msg.text, prefix="USER: ")
+            if DEBUG_PRINT:
+                print_width(msg.text, prefix="USER: ")
             inference_data["messages"].append(msg)
         return inference_data
 
     def _add_next_turn_user_message_FC(self, inference_data: dict, user_message: list[dict]) -> dict:
         for m in user_message:
             msg = ChatMessage.model_validate(m)
-            print_width(msg.text, prefix="USER: ")
+            if DEBUG_PRINT:
+                print_width(msg.text, prefix="USER: ")
             inference_data["messages"].append(msg)
         return inference_data
 
