@@ -4,7 +4,7 @@ TEMPLATE = """
 #!/bin/bash
 #
 #SBATCH --partition=p_nlp
-#SBATCH --job-name={model_name}-bfcl
+#SBATCH --job-name={model_log_name}-bfcl
 #
 #SBATCH --output=/nlpgpu/data/andrz/logs/%j.%x.log
 #SBATCH --error=/nlpgpu/data/andrz/logs/%j.%x.log
@@ -48,6 +48,6 @@ SLURM_ROOT = Path(__file__).parent
 for model, concurrency in MODEL_KEYS:
     model_fp_name = model.replace("/", "_")
     fp = SLURM_ROOT / f"gen/{model_fp_name}.sh"
-    fp.write_text(TEMPLATE.format(model_name=model, num_threads=concurrency))
+    fp.write_text(TEMPLATE.format(model_name=model, model_log_name=model_fp_name, num_threads=concurrency))
     fp2 = SLURM_ROOT / f"gen/kani-{model_fp_name}.sh"
-    fp2.write_text(TEMPLATE.format(model_name=f"kani:{model}", num_threads=concurrency))
+    fp2.write_text(TEMPLATE.format(model_name=f"kani:{model}", model_log_name=model_fp_name, num_threads=concurrency))

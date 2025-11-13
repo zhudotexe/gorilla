@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --partition=p_nlp
-#SBATCH --job-name=Qwen/Qwen3-4B-FC-bfcl
+#SBATCH --job-name=Qwen_Qwen3-4B-FC-bfcl
 #
 #SBATCH --output=/nlpgpu/data/andrz/logs/%j.%x.log
 #SBATCH --error=/nlpgpu/data/andrz/logs/%j.%x.log

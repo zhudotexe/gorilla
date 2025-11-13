@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --partition=p_nlp
-#SBATCH --job-name=kani:openai/gpt-oss-20b-bfcl
+#SBATCH --job-name=openai_gpt-oss-20b-bfcl
 #
 #SBATCH --output=/nlpgpu/data/andrz/logs/%j.%x.log
 #SBATCH --error=/nlpgpu/data/andrz/logs/%j.%x.log

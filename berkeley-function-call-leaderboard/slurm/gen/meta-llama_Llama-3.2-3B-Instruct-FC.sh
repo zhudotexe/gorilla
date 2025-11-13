@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --partition=p_nlp
-#SBATCH --job-name=meta-llama/Llama-3.2-3B-Instruct-FC-bfcl
+#SBATCH --job-name=meta-llama_Llama-3.2-3B-Instruct-FC-bfcl
 #
 #SBATCH --output=/nlpgpu/data/andrz/logs/%j.%x.log
 #SBATCH --error=/nlpgpu/data/andrz/logs/%j.%x.log
