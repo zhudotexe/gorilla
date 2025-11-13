@@ -20,28 +20,18 @@ from bfcl_eval.model_handler.api_inference.nemotron import NemotronHandler
 from bfcl_eval.model_handler.api_inference.nova import NovaHandler
 from bfcl_eval.model_handler.api_inference.novita import NovitaHandler
 from bfcl_eval.model_handler.api_inference.nvidia import NvidiaHandler
-from bfcl_eval.model_handler.api_inference.openai_completion import (
-    OpenAICompletionsHandler,
-)
 from bfcl_eval.model_handler.api_inference.openai_response import OpenAIResponsesHandler
-from bfcl_eval.model_handler.api_inference.qwen import (
-    QwenAgentNoThinkHandler,
-    QwenAgentThinkHandler,
-    QwenAPIHandler,
-)
+from bfcl_eval.model_handler.api_inference.qwen import QwenAPIHandler, QwenAgentNoThinkHandler, QwenAgentThinkHandler
 from bfcl_eval.model_handler.api_inference.writer import WriterHandler
+from bfcl_eval.model_handler.custom.kani_handler import KaniQwen3VLLMHandler
 from bfcl_eval.model_handler.local_inference.arch import ArchHandler
 from bfcl_eval.model_handler.local_inference.bielik import BielikHandler
 from bfcl_eval.model_handler.local_inference.bitagent import BitAgentHandler
-from bfcl_eval.model_handler.local_inference.deepseek_reasoning import (
-    DeepseekReasoningHandler,
-)
+from bfcl_eval.model_handler.local_inference.deepseek_reasoning import DeepseekReasoningHandler
 from bfcl_eval.model_handler.local_inference.falcon_fc import Falcon3FCHandler
 from bfcl_eval.model_handler.local_inference.gemma import GemmaHandler
 from bfcl_eval.model_handler.local_inference.glm import GLMHandler
-from bfcl_eval.model_handler.local_inference.granite import (
-    GraniteFunctionCallingHandler,
-)
+from bfcl_eval.model_handler.local_inference.granite import GraniteFunctionCallingHandler
 from bfcl_eval.model_handler.local_inference.granite_3 import Granite3FCHandler
 from bfcl_eval.model_handler.local_inference.hammer import HammerHandler
 from bfcl_eval.model_handler.local_inference.llama import LlamaHandler
@@ -51,18 +41,12 @@ from bfcl_eval.model_handler.local_inference.minicpm_fc import MiniCPMFCHandler
 from bfcl_eval.model_handler.local_inference.mistral_fc import MistralFCHandler
 from bfcl_eval.model_handler.local_inference.phi import PhiHandler
 from bfcl_eval.model_handler.local_inference.phi_fc import PhiFCHandler
-from bfcl_eval.model_handler.local_inference.quick_testing_oss import (
-    QuickTestingOSSHandler,
-)
 from bfcl_eval.model_handler.local_inference.qwen import QwenHandler
 from bfcl_eval.model_handler.local_inference.qwen_fc import QwenFCHandler
-from bfcl_eval.model_handler.local_inference.salesforce_llama import (
-    SalesforceLlamaHandler,
-)
-from bfcl_eval.model_handler.local_inference.salesforce_qwen import (
-    SalesforceQwenHandler,
-)
+from bfcl_eval.model_handler.local_inference.salesforce_llama import SalesforceLlamaHandler
+from bfcl_eval.model_handler.local_inference.salesforce_qwen import SalesforceQwenHandler
 from bfcl_eval.model_handler.local_inference.think_agent import ThinkAgentHandler
+
 
 # -----------------------------------------------------------------------------
 # A mapping of model identifiers to their respective model configurations.
@@ -75,7 +59,7 @@ from bfcl_eval.model_handler.local_inference.think_agent import ThinkAgentHandle
 @dataclass
 class ModelConfig:
     """
-    Model configuration class for storing model metadata and settings. 
+    Model configuration class for storing model metadata and settings.
 
     Attributes:
         model_name (str): Name of the model as used in the vendor API or on Hugging Face (may not be unique).
@@ -2066,6 +2050,19 @@ third_party_inference_model_map = {
         is_fc_model=True,
         underscore_to_dot=True,
     ),
+    # kani
+    "kani-qwen3-4b-instruct-FC": ModelConfig(
+        model_name="Qwen/Qwen3-4B-Instruct-2507",
+        display_name="Kani + Qwen3-4B-Instruct (FC)",
+        url="https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507",
+        org="Qwen",
+        license="apache-2.0",
+        model_handler=KaniQwen3VLLMHandler,
+        input_price=None,
+        output_price=None,
+        is_fc_model=True,
+        underscore_to_dot=True,
+    ),
 }
 
 
@@ -2077,3 +2074,8 @@ MODEL_CONFIG_MAPPING = {
 
 # Uncomment to get the supported_models.py file contents
 # print(repr(list(MODEL_CONFIG_MAPPING.keys())))
+
+# curl 127.0.0.1:8000/v1/completions \
+# -H "Content-Type: application/json" \
+# -H "Authorization: Bearer YOUR_API_KEY" \
+# -d '{"model": "Qwen/Qwen3-4B-Thinking-2507", "prompt": "Say this is a test", "max_tokens": null}'

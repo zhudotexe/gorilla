@@ -1,0 +1,3 @@
+-e .
+kani @ git+https://github.com/zhudotexe/kani.git@main
+kani-ext-vllm @ git+https://github.com/zhudotexe/kani-ext-vllm.git@main
