@@ -9,7 +9,8 @@ from typing import Any
 from kani import AIFunction, ChatMessage, ChatRole, ToolCall
 from kani.ext.vllm import VLLMServerEngine
 from kani.model_specific.qwen3 import Qwen3ThinkingParser
-from kani.utils.cli import create_engine_from_cli_arg
+from kani.utils.cli import create_engine_from_cli_arg, print_width
+from kani.utils.message_formatters import assistant_message_contents_thinking
 
 from bfcl_eval.constants.enums import ModelStyle
 from bfcl_eval.constants.type_mappings import GORILLA_TO_OPENAPI
@@ -64,6 +65,8 @@ class KaniBaseHandler(BaseHandler):
 
         async def _full_round():
             async for msg in ai.full_round(query=None):
+                if text := assistant_message_contents_thinking(msg, show_args=True, show_reasoning=True):
+                    print_width(text, prefix="AI: ")
                 msgs.append(msg)
 
         start_time = time.monotonic()
@@ -150,11 +153,17 @@ class KaniBaseHandler(BaseHandler):
         }
 
     def add_first_turn_message_FC(self, inference_data: dict, first_turn_message: list[dict]) -> dict:
-        inference_data["messages"].extend(ChatMessage.model_validate(m) for m in first_turn_message)
+        for m in first_turn_message:
+            msg = ChatMessage.model_validate(m)
+            print_width(msg.text, prefix="USER: ")
+            inference_data["messages"].append(msg)
         return inference_data
 
     def _add_next_turn_user_message_FC(self, inference_data: dict, user_message: list[dict]) -> dict:
-        inference_data["messages"].extend(ChatMessage.model_validate(m) for m in user_message)
+        for m in user_message:
+            msg = ChatMessage.model_validate(m)
+            print_width(msg.text, prefix="USER: ")
+            inference_data["messages"].append(msg)
         return inference_data
 
     def _add_assistant_message_FC(self, inference_data: dict, model_response_data: dict) -> dict:
