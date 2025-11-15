@@ -50,6 +50,8 @@ def create_field_type(model_name, field_name, field_schema, required):
         field_kwargs["max_length"] = field_schema["maxItems"]
     if "minItems" in field_schema:
         field_kwargs["min_length"] = field_schema["minItems"]
+    if field_name.startswith("_"):
+        field_kwargs["alias"] = field_name
 
     default_value = field_schema.get("default")
     if required:
@@ -67,8 +69,10 @@ def create_pydantic_model_from_json_schema(model_name: str, schema: dict):
     required_fields = schema.get("required", [])
 
     for field_name, field_schema in properties.items():
-        field_type = create_field_type(model_name, field_name, field_schema, required=field_name in required_fields)
-        model_fields[field_name] = field_type
+        field_type, field_args = create_field_type(model_name, field_name, field_schema, required=field_name in required_fields)
+        if field_name.startswith("_"):
+            field_name = field_name.lstrip("_")
+        model_fields[field_name] = field_type, field_args
 
     DynamicModel = create_model(model_name, **model_fields)
     return DynamicModel
