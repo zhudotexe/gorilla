@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import functools
 import itertools
 import threading
@@ -12,6 +13,7 @@ from kani.model_specific.gpt_oss import GPTOSSParser
 from kani.model_specific.qwen3 import Qwen3Parser
 from kani.utils.cli import create_engine_from_cli_arg, print_width
 from kani.utils.message_formatters import assistant_message_contents_thinking
+from openai import AsyncOpenAI
 
 from bfcl_eval.constants.enums import ModelStyle
 from bfcl_eval.constants.type_mappings import GORILLA_TO_OPENAPI
@@ -46,6 +48,21 @@ class KaniBaseHandler(BaseHandler):
         include_input_log: bool,
         exclude_state_log: bool,
     ):
+        # asyncio setup
+        # make a thread local event loop
+        if not hasattr(self.thread_local, "loop"):
+            self.thread_local.loop = asyncio.new_event_loop()
+        # make a thread local openai client
+        if not hasattr(self.thread_local, "oai_client"):
+            self.thread_local.oai_client = AsyncOpenAI(
+                base_url=f"http://127.0.0.1:{self.engine.server.port}/v1",
+                api_key="<the library wants this but it isn't needed>",
+                timeout=99999,
+            )
+        if self.engine.client is not self.thread_local.oai_client:
+            self.engine = copy.copy(self.engine)
+            self.engine.client = self.thread_local.oai_client
+
         # FC model
         if contain_multi_turn_interaction(test_entry["id"]):
             return self.inference_multi_turn_FC(test_entry, include_input_log, exclude_state_log)
@@ -57,10 +74,6 @@ class KaniBaseHandler(BaseHandler):
         messages = inference_data["messages"].copy()
         tools = inference_data["tools"].copy()
         # print(inference_data)
-
-        # asyncio setup
-        if not hasattr(self.thread_local, "loop"):
-            self.thread_local.loop = asyncio.new_event_loop()
 
         # main generation
         ai = TokenCountingKani(self.engine, system_prompt=system_prompt, chat_history=messages, functions=tools)
