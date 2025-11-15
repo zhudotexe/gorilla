@@ -32,15 +32,15 @@ multi_turn_miss_param,multi_turn_long_context,memory_kv,memory_vector,memory_rec
 # gptoss 20b?
 # also baselines w/o kani
 MODEL_KEYS = [
-    ("Qwen/Qwen3-0.6B-FC", 32),
-    ("Qwen/Qwen3-1.7B-FC", 32),
-    ("Qwen/Qwen3-4B-FC", 32),
-    ("Qwen/Qwen3-8B-FC", 16),
-    ("Qwen/Qwen3-14B-FC", 8),
-    ("meta-llama/Llama-3.2-1B-Instruct-FC", 32),
-    ("meta-llama/Llama-3.2-3B-Instruct-FC", 32),
-    ("meta-llama/Llama-3.1-8B-Instruct-FC", 16),
-    ("openai/gpt-oss-20b-FC", 8),
+    ("Qwen/Qwen3-0.6B-FC", 64),
+    ("Qwen/Qwen3-1.7B-FC", 64),
+    ("Qwen/Qwen3-4B-FC", 64),
+    ("Qwen/Qwen3-8B-FC", 32),
+    ("Qwen/Qwen3-14B-FC", 16),
+    ("meta-llama/Llama-3.2-1B-Instruct-FC", 64),
+    ("meta-llama/Llama-3.2-3B-Instruct-FC", 64),
+    ("meta-llama/Llama-3.1-8B-Instruct-FC", 32),
+    ("openai/gpt-oss-20b-FC", 16),
 ]
 
 SLURM_ROOT = Path(__file__).parent
