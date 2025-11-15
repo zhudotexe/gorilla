@@ -1,6 +1,7 @@
 from enum import Enum
 
-from pydantic import create_model
+from pydantic import Field, create_model
+
 
 # json_schema_str = """
 # {
@@ -15,7 +16,7 @@ from pydantic import create_model
 # """
 
 
-def create_field_type(model_name, field_name, field_schema):
+def create_field_type(model_name, field_name, field_schema, required):
     field_type = None
     match field_schema:
         case {"enum": options}:
@@ -28,16 +29,34 @@ def create_field_type(model_name, field_name, field_schema):
             field_type = float
         case {"type": "boolean"}:
             field_type = bool
-        case {"type": "object"}:
+        case {"type": "object", "properties": _}:
             field_type = create_pydantic_model_from_json_schema(
                 field_schema.get("name", f"{model_name}__{field_name}"), field_schema
             )
+        case {"type": "object"}:
+            field_type = dict
         case {"type": "array"}:
             field_type = list[create_field_type(model_name, field_name, field_schema["items"])]
         case x:
             print(field_schema)
             raise ValueError(f"unknown schema type: {x}")
-    return field_type
+
+    # additional kwargs
+    field_kwargs = {}
+    if "maximum" in field_schema:
+        field_kwargs["le"] = field_schema["maximum"]
+    if "maxItems" in field_schema:
+        field_kwargs["max_length"] = field_schema["maxItems"]
+    if "minItems" in field_schema:
+        field_kwargs["min_length"] = field_schema["minItems"]
+
+    default_value = field_schema.get("default")
+    if required:
+        if default_value is not None:
+            return field_type, Field(default_value, **field_kwargs)
+        else:
+            return field_type, Field(**field_kwargs)
+    return field_type, Field(default_value, **field_kwargs)
 
 
 def create_pydantic_model_from_json_schema(model_name: str, schema: dict):
@@ -47,16 +66,8 @@ def create_pydantic_model_from_json_schema(model_name: str, schema: dict):
     required_fields = schema.get("required", [])
 
     for field_name, field_schema in properties.items():
-        field_type = create_field_type(model_name, field_name, field_schema)
-        default_value = field_schema.get("default")
-
-        if field_name in required_fields:
-            if default_value is not None:
-                model_fields[field_name] = (field_type, default_value)
-            else:
-                model_fields[field_name] = field_type
-        else:
-            model_fields[field_name] = (field_type, default_value)
+        field_type = create_field_type(model_name, field_name, field_schema, required=field_name in required_fields)
+        model_fields[field_name] = field_type
 
     DynamicModel = create_model(model_name, **model_fields)
     return DynamicModel
