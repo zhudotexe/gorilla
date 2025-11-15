@@ -36,7 +36,8 @@ def create_field_type(model_name, field_name, field_schema, required):
         case {"type": "object"}:
             field_type = dict
         case {"type": "array"}:
-            field_type = list[create_field_type(model_name, field_name, field_schema["items"])]
+            t, _ = create_field_type(model_name, field_name, field_schema["items"], True)
+            field_type = list[t]
         case x:
             print(field_schema)
             raise ValueError(f"unknown schema type: {x}")
