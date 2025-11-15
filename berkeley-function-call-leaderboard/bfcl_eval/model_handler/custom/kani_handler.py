@@ -35,7 +35,6 @@ DEBUG_PRINT = False
 
 class KaniBaseHandler(BaseHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, engine=None, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         super().__init__(model_name, temperature, registry_name, is_fc_model, **kwargs)
         # compat
         self.model_style = ModelStyle.OPENAI_COMPLETIONS
@@ -256,6 +255,7 @@ class KaniNoRetryHandler(KaniBaseHandler):
 # ===== model impls =====
 class KaniLlama31VLLMHandler(KaniBaseHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         engine = VLLMOpenAIEngine(
             model_id=model_name,
             vllm_args={
@@ -271,6 +271,7 @@ class KaniLlama31VLLMHandler(KaniBaseHandler):
 
 class KaniLlama32VLLMHandler(KaniBaseHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         engine = VLLMOpenAIEngine(
             model_id=model_name,
             vllm_args={
@@ -286,6 +287,7 @@ class KaniLlama32VLLMHandler(KaniBaseHandler):
 
 class KaniQwen3VLLMHandler(KaniBaseHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         engine = VLLMServerEngine(
             model_id=model_name,
             vllm_args={
@@ -301,6 +303,7 @@ class KaniQwen3VLLMHandler(KaniBaseHandler):
 
 class KaniGPTOSSVLLMHandler(KaniBaseHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         engine = VLLMServerEngine(
             model_id=model_name,
             vllm_args={
@@ -317,6 +320,7 @@ class KaniGPTOSSVLLMHandler(KaniBaseHandler):
 # no retry
 class KaniLlama31VLLMNoRetryHandler(KaniNoRetryHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         engine = VLLMOpenAIEngine(
             model_id=model_name,
             vllm_args={
@@ -332,6 +336,7 @@ class KaniLlama31VLLMNoRetryHandler(KaniNoRetryHandler):
 
 class KaniLlama32VLLMNoRetryHandler(KaniNoRetryHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         engine = VLLMOpenAIEngine(
             model_id=model_name,
             vllm_args={
@@ -347,6 +352,7 @@ class KaniLlama32VLLMNoRetryHandler(KaniNoRetryHandler):
 
 class KaniQwen3VLLMNoRetryHandler(KaniNoRetryHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         engine = VLLMServerEngine(
             model_id=model_name,
             vllm_args={
@@ -362,6 +368,7 @@ class KaniQwen3VLLMNoRetryHandler(KaniNoRetryHandler):
 
 class KaniGPTOSSVLLMNoRetryHandler(KaniNoRetryHandler):
     def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         engine = VLLMServerEngine(
             model_id=model_name,
             vllm_args={
