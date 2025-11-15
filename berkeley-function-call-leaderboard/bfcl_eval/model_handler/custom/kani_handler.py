@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from kani import AIFunction, ChatMessage, ChatRole, ToolCall
+from kani.engines import WrapperEngine
 from kani.ext.vllm import VLLMOpenAIEngine, VLLMServerEngine
 from kani.model_specific.gpt_oss import GPTOSSParser
 from kani.model_specific.qwen3 import Qwen3Parser
@@ -60,8 +61,12 @@ class KaniBaseHandler(BaseHandler):
                 timeout=99999,
             )
         if self.engine.client is not self.thread_local.oai_client:
-            self.engine = copy.copy(self.engine)
-            self.engine.client = self.thread_local.oai_client
+            if isinstance(self.engine, WrapperEngine):
+                self.engine.engine = copy.copy(self.engine.engine)
+                self.engine.engine.client = self.thread_local.oai_client
+            else:
+                self.engine = copy.copy(self.engine)
+                self.engine.client = self.thread_local.oai_client
 
         # FC model
         if contain_multi_turn_interaction(test_entry["id"]):
