@@ -1,20 +1,19 @@
 import asyncio
-import copy
 import functools
 import itertools
+import signal
 import threading
 import time
 from pathlib import Path
 from typing import Any
 
 from kani import AIFunction, ChatMessage, ChatRole, ToolCall
-from kani.engines import WrapperEngine
 from kani.ext.vllm import VLLMOpenAIEngine, VLLMServerEngine
+from kani.ext.vllm.vllm_server import VLLMServer
 from kani.model_specific.gpt_oss import GPTOSSParser
 from kani.model_specific.qwen3 import Qwen3Parser
-from kani.utils.cli import create_engine_from_cli_arg, print_width
+from kani.utils.cli import print_width
 from kani.utils.message_formatters import assistant_message_contents_thinking
-from openai import AsyncOpenAI
 
 from bfcl_eval.constants.enums import ModelStyle
 from bfcl_eval.constants.type_mappings import GORILLA_TO_OPENAPI
@@ -34,13 +33,24 @@ DEBUG_PRINT = False
 
 
 class KaniBaseHandler(BaseHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, engine=None, **kwargs):
+    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
+        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
         super().__init__(model_name, temperature, registry_name, is_fc_model, **kwargs)
         # compat
         self.model_style = ModelStyle.OPENAI_COMPLETIONS
-
-        self.engine = engine
         self.thread_local = threading.local()
+
+    def _create_engine(self):
+        raise NotImplementedError
+
+    def _ensure_engine(self):
+        if not hasattr(self.thread_local, "engine"):
+            self.thread_local.engine = self._create_engine()
+
+    @property
+    def engine(self):
+        # thread-local engine
+        return self.thread_local.engine
 
     def inference(
         self,
@@ -52,20 +62,7 @@ class KaniBaseHandler(BaseHandler):
         # make a thread local event loop
         if not hasattr(self.thread_local, "loop"):
             self.thread_local.loop = asyncio.new_event_loop()
-        # make a thread local openai client
-        if not hasattr(self.thread_local, "oai_client"):
-            self.thread_local.oai_client = AsyncOpenAI(
-                base_url=f"http://127.0.0.1:{self.engine.server.port}/v1",
-                api_key="<the library wants this but it isn't needed>",
-                timeout=99999,
-            )
-        if self.engine.client is not self.thread_local.oai_client:
-            if isinstance(self.engine, WrapperEngine):
-                self.engine.engine = copy.copy(self.engine.engine)
-                self.engine.engine.client = self.thread_local.oai_client
-            else:
-                self.engine = copy.copy(self.engine)
-                self.engine.client = self.thread_local.oai_client
+        self._ensure_engine()
 
         # FC model
         if contain_multi_turn_interaction(test_entry["id"]):
@@ -217,12 +214,6 @@ class KaniBaseHandler(BaseHandler):
         return convert_to_function_call(result)
 
 
-class KaniHandler(KaniBaseHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        engine = create_engine_from_cli_arg(model_name)
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
-
-
 class KaniNoRetryHandler(KaniBaseHandler):
     def _query_FC(self, inference_data: dict):
         inference_data["max_function_rounds"] = 0
@@ -253,130 +244,102 @@ class KaniNoRetryHandler(KaniBaseHandler):
 
 
 # ===== model impls =====
-class KaniLlama31VLLMHandler(KaniBaseHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
-        engine = VLLMOpenAIEngine(
-            model_id=model_name,
-            vllm_args={
-                "tensor_parallel_size": 8,
-                "enable_chunked_prefill": True,
-                "enable-auto-tool-choice": True,
-                "tool-call-parser": "llama3_json",
-            },
-            temperature=temperature,
+# ---- vllm ----
+class KaniVLLMHandler(KaniBaseHandler):
+    vllm_args: dict
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.vllm_process = None
+
+    def start_managed_engine(self):
+        self.vllm_process = VLLMServer(model_id=self.model_name, vllm_args=self.vllm_args)
+        self.vllm_process.start()
+
+    def stop_managed_engine(self):
+        self.vllm_process.process.send_signal(signal.SIGINT)
+
+
+class KaniLlama31VLLMHandler(KaniVLLMHandler):
+    vllm_args = {
+        "tensor_parallel_size": 8,
+        "enable_chunked_prefill": True,
+        "enable-auto-tool-choice": True,
+        "tool-call-parser": "llama3_json",
+    }
+
+    def _create_engine(self):
+        return VLLMOpenAIEngine(
+            model_id=self.model_name,
+            vllm_port=self.vllm_process.port,
+            temperature=self.temperature,
+            use_managed_server=False,
         )
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
 
 
-class KaniLlama32VLLMHandler(KaniBaseHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
-        engine = VLLMOpenAIEngine(
-            model_id=model_name,
-            vllm_args={
-                "tensor_parallel_size": 8,
-                "enable_chunked_prefill": True,
-                "enable-auto-tool-choice": True,
-                "tool-call-parser": "pythonic",
-            },
-            temperature=temperature,
+class KaniLlama32VLLMHandler(KaniVLLMHandler):
+    vllm_args = {
+        "tensor_parallel_size": 8,
+        "enable_chunked_prefill": True,
+        "enable-auto-tool-choice": True,
+        "tool-call-parser": "pythonic",
+    }
+
+    def _create_engine(self):
+        return VLLMOpenAIEngine(
+            model_id=self.model_name,
+            vllm_port=self.vllm_process.port,
+            temperature=self.temperature,
+            use_managed_server=False,
         )
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
 
 
-class KaniQwen3VLLMHandler(KaniBaseHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
+class KaniQwen3VLLMHandler(KaniVLLMHandler):
+    vllm_args = {
+        "tensor_parallel_size": 8,
+        "enable_chunked_prefill": True,
+    }
+
+    def _create_engine(self):
         engine = VLLMServerEngine(
-            model_id=model_name,
-            vllm_args={
-                "tensor_parallel_size": 8,
-                "enable_chunked_prefill": True,
-            },
-            temperature=temperature,
+            model_id=self.model_name,
+            vllm_port=self.vllm_process.port,
+            temperature=self.temperature,
+            use_managed_server=False,
         )
-        engine.model = model_name
-        engine = Qwen3Parser(engine)
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+        engine.model = self.model_name
+        return Qwen3Parser(engine)
 
 
-class KaniGPTOSSVLLMHandler(KaniBaseHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
+class KaniGPTOSSVLLMHandler(KaniVLLMHandler):
+    vllm_args = {
+        "tensor_parallel_size": 8,
+        "enable_chunked_prefill": True,
+    }
+
+    def _create_engine(self):
         engine = VLLMServerEngine(
-            model_id=model_name,
-            vllm_args={
-                "tensor_parallel_size": 8,
-                "enable_chunked_prefill": True,
-            },
-            temperature=temperature,
+            model_id=self.model_name,
+            vllm_port=self.vllm_process.port,
+            temperature=self.temperature,
+            use_managed_server=False,
         )
-        engine.model = model_name
-        engine = GPTOSSParser(engine)
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+        engine.model = self.model_name
+        return GPTOSSParser(engine)
 
 
 # no retry
-class KaniLlama31VLLMNoRetryHandler(KaniNoRetryHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
-        engine = VLLMOpenAIEngine(
-            model_id=model_name,
-            vllm_args={
-                "tensor_parallel_size": 8,
-                "enable_chunked_prefill": True,
-                "enable-auto-tool-choice": True,
-                "tool-call-parser": "llama3_json",
-            },
-            temperature=temperature,
-        )
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+class KaniLlama31VLLMNoRetryHandler(KaniLlama31VLLMHandler, KaniNoRetryHandler):
+    pass
 
 
-class KaniLlama32VLLMNoRetryHandler(KaniNoRetryHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
-        engine = VLLMOpenAIEngine(
-            model_id=model_name,
-            vllm_args={
-                "tensor_parallel_size": 8,
-                "enable_chunked_prefill": True,
-                "enable-auto-tool-choice": True,
-                "tool-call-parser": "pythonic",
-            },
-            temperature=temperature,
-        )
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+class KaniLlama32VLLMNoRetryHandler(KaniLlama32VLLMHandler, KaniNoRetryHandler):
+    pass
 
 
-class KaniQwen3VLLMNoRetryHandler(KaniNoRetryHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
-        engine = VLLMServerEngine(
-            model_id=model_name,
-            vllm_args={
-                "tensor_parallel_size": 8,
-                "enable_chunked_prefill": True,
-            },
-            temperature=temperature,
-        )
-        engine.model = model_name
-        engine = Qwen3Parser(engine)
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+class KaniQwen3VLLMNoRetryHandler(KaniQwen3VLLMHandler, KaniNoRetryHandler):
+    pass
 
 
-class KaniGPTOSSVLLMNoRetryHandler(KaniNoRetryHandler):
-    def __init__(self, model_name, temperature, registry_name, is_fc_model, **kwargs):
-        temperature = max(temperature, 0.01) if temperature != 0 else 0  # silence a vllm warning
-        engine = VLLMServerEngine(
-            model_id=model_name,
-            vllm_args={
-                "tensor_parallel_size": 8,
-                "enable_chunked_prefill": True,
-            },
-            temperature=temperature,
-        )
-        engine.model = model_name
-        engine = GPTOSSParser(engine)
-        super().__init__(model_name, temperature, registry_name, is_fc_model, engine=engine, **kwargs)
+class KaniGPTOSSVLLMNoRetryHandler(KaniGPTOSSVLLMHandler, KaniNoRetryHandler):
+    pass

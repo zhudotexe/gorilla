@@ -50,4 +50,6 @@ for model, concurrency in MODEL_KEYS:
     fp = SLURM_ROOT / f"gen/{model_fp_name}.sh"
     fp.write_text(TEMPLATE.format(model_name=model, model_log_name=model_fp_name, num_threads=concurrency))
     fp2 = SLURM_ROOT / f"gen/kani-{model_fp_name}.sh"
-    fp2.write_text(TEMPLATE.format(model_name=f"kani:{model}", model_log_name=model_fp_name, num_threads=concurrency))
+    fp2.write_text(
+        TEMPLATE.format(model_name=f"kani:{model}", model_log_name=f"kani-{model_fp_name}", num_threads=concurrency)
+    )

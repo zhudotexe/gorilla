@@ -19,6 +19,7 @@ from bfcl_eval.constants.eval_config import (
 from bfcl_eval.constants.model_config import MODEL_CONFIG_MAPPING
 from bfcl_eval.eval_checker.eval_runner_helper import load_file
 from bfcl_eval.constants.enums import ModelStyle
+from bfcl_eval.model_handler.custom.kani_handler import KaniVLLMHandler
 from bfcl_eval.utils import *
 from tqdm import tqdm
 
@@ -243,6 +244,8 @@ def generate_results(args, model_name, test_cases_total):
                 skip_server_setup=args.skip_server_setup,
                 local_model_path=args.local_model_path,
             )
+        if isinstance(handler, KaniVLLMHandler):
+            handler.start_managed_engine()
 
         # ───── dependency bookkeeping ──────────────────────────────
         dependencies = {
@@ -330,6 +333,8 @@ def generate_results(args, model_name, test_cases_total):
 
         if is_oss_model:
             handler.shutdown_local_server()
+        if isinstance(handler, KaniVLLMHandler):
+            handler.stop_managed_engine()
 
 
 def main(args):
