@@ -65,7 +65,7 @@ local_inference_model_map = {
     # bfcl impl for reference
     "bfcl:Qwen/Qwen3-4B-FC": ModelConfig(
         model_name="Qwen/Qwen3-4B",
-        display_name="Qwen3-4B (FC)",
+        display_name="Qwen3-4B (FC; Reference)",
         url="https://huggingface.co/Qwen/Qwen3-4B",
         org="Qwen",
         license="apache-2.0",
@@ -86,7 +86,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "meta-llama/Llama-3.2-1B-Instruct-FC": ModelConfig(
         model_name="meta-llama/Llama-3.2-1B-Instruct",
@@ -98,7 +98,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "meta-llama/Llama-3.2-3B-Instruct-FC": ModelConfig(
         model_name="meta-llama/Llama-3.2-3B-Instruct",
@@ -110,7 +110,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "Qwen/Qwen3-0.6B-FC": ModelConfig(
         model_name="Qwen/Qwen3-0.6B",
@@ -122,7 +122,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "Qwen/Qwen3-1.7B-FC": ModelConfig(
         model_name="Qwen/Qwen3-1.7B",
@@ -134,7 +134,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "Qwen/Qwen3-4B-FC": ModelConfig(
         model_name="Qwen/Qwen3-4B",
@@ -146,7 +146,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "Qwen/Qwen3-8B-FC": ModelConfig(
         model_name="Qwen/Qwen3-8B",
@@ -158,7 +158,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "Qwen/Qwen3-14B-FC": ModelConfig(
         model_name="Qwen/Qwen3-14B",
@@ -170,7 +170,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "Qwen/Qwen3-32B-FC": ModelConfig(
         model_name="Qwen/Qwen3-32B",
@@ -182,7 +182,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "openai/gpt-oss-20b-FC": ModelConfig(
         model_name="openai/gpt-oss-20b",
@@ -194,7 +194,7 @@ local_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
 }
 
@@ -202,7 +202,7 @@ third_party_inference_model_map = {
     # kani
     "kani:meta-llama/Llama-3.1-8B-Instruct-FC": ModelConfig(
         model_name="meta-llama/Llama-3.1-8B-Instruct",
-        display_name="Llama-3.1-8B-Instruct (FC)",
+        display_name="Llama-3.1-8B-Instruct (FC; Kani)",
         url="https://llama.meta.com/llama3",
         org="Meta",
         license="Meta Llama 3 Community",
@@ -210,11 +210,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:meta-llama/Llama-3.2-1B-Instruct-FC": ModelConfig(
         model_name="meta-llama/Llama-3.2-1B-Instruct",
-        display_name="Llama-3.2-1B-Instruct (FC)",
+        display_name="Llama-3.2-1B-Instruct (FC; Kani)",
         url="https://llama.meta.com/llama3",
         org="Meta",
         license="Meta Llama 3 Community",
@@ -222,11 +222,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:meta-llama/Llama-3.2-3B-Instruct-FC": ModelConfig(
         model_name="meta-llama/Llama-3.2-3B-Instruct",
-        display_name="Llama-3.2-3B-Instruct (FC)",
+        display_name="Llama-3.2-3B-Instruct (FC; Kani)",
         url="https://llama.meta.com/llama3",
         org="Meta",
         license="Meta Llama 3 Community",
@@ -234,11 +234,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:Qwen/Qwen3-0.6B-FC": ModelConfig(
         model_name="Qwen/Qwen3-0.6B",
-        display_name="Qwen3-0.6B (FC)",
+        display_name="Qwen3-0.6B (FC; Kani)",
         url="https://huggingface.co/Qwen/Qwen3-0.6B",
         org="Qwen",
         license="apache-2.0",
@@ -246,11 +246,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:Qwen/Qwen3-1.7B-FC": ModelConfig(
         model_name="Qwen/Qwen3-1.7B",
-        display_name="Qwen3-1.7B (FC)",
+        display_name="Qwen3-1.7B (FC; Kani)",
         url="https://huggingface.co/Qwen/Qwen3-1.7B",
         org="Qwen",
         license="apache-2.0",
@@ -258,11 +258,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:Qwen/Qwen3-4B-FC": ModelConfig(
         model_name="Qwen/Qwen3-4B",
-        display_name="Qwen3-4B (FC)",
+        display_name="Qwen3-4B (FC; Kani)",
         url="https://huggingface.co/Qwen/Qwen3-4B",
         org="Qwen",
         license="apache-2.0",
@@ -270,11 +270,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:Qwen/Qwen3-8B-FC": ModelConfig(
         model_name="Qwen/Qwen3-8B",
-        display_name="Qwen3-8B (FC)",
+        display_name="Qwen3-8B (FC; Kani)",
         url="https://huggingface.co/Qwen/Qwen3-8B",
         org="Qwen",
         license="apache-2.0",
@@ -282,11 +282,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:Qwen/Qwen3-14B-FC": ModelConfig(
         model_name="Qwen/Qwen3-14B",
-        display_name="Qwen3-14B (FC)",
+        display_name="Qwen3-14B (FC; Kani)",
         url="https://huggingface.co/Qwen/Qwen3-14B",
         org="Qwen",
         license="apache-2.0",
@@ -294,11 +294,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:Qwen/Qwen3-32B-FC": ModelConfig(
         model_name="Qwen/Qwen3-32B",
-        display_name="Qwen3-32B (FC)",
+        display_name="Qwen3-32B (FC; Kani)",
         url="https://huggingface.co/Qwen/Qwen3-32B",
         org="Qwen",
         license="apache-2.0",
@@ -306,11 +306,11 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
     "kani:openai/gpt-oss-20b-FC": ModelConfig(
         model_name="openai/gpt-oss-20b",
-        display_name="openai/gpt-oss-20b (FC)",
+        display_name="openai/gpt-oss-20b (FC; Kani)",
         url="https://huggingface.co/openai/gpt-oss-20b",
         org="OpenAI",
         license="apache-2.0",
@@ -318,7 +318,7 @@ third_party_inference_model_map = {
         input_price=None,
         output_price=None,
         is_fc_model=True,
-        underscore_to_dot=False,
+        underscore_to_dot=True,
     ),
 }
 

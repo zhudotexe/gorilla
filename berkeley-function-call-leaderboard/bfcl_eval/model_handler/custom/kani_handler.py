@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import itertools
+import json
 import signal
 import threading
 import time
@@ -159,6 +160,11 @@ class KaniBaseHandler(BaseHandler):
         model_responses = [{tc.function.name: tc.function.arguments} for tc in valid_tcs]
         tool_call_ids = [tc.id for tc in valid_tcs]
 
+        # it expects the content of the last message if no tool calls
+        if not model_responses:
+            model_responses = [m for m in api_response if m.role == ChatRole.ASSISTANT][-1].text
+            tool_call_ids = []
+
         # token counting
         prompt_tokens = sum(m.extra["prompt_tokens"] for m in api_response if "prompt_tokens" in m.extra)
         completion_tokens = sum(m.extra["completion_tokens"] for m in api_response if "completion_tokens" in m.extra)
@@ -212,6 +218,14 @@ class KaniBaseHandler(BaseHandler):
 
     def decode_execute(self, result, has_tool_call_tag):
         return convert_to_function_call(result)
+
+    def decode_ast(self, result, language, has_tool_call_tag):
+        decoded_output = []
+        for invoked_function in result:
+            name = list(invoked_function.keys())[0]
+            params = json.loads(invoked_function[name])
+            decoded_output.append({name: params})
+        return decoded_output
 
 
 class KaniNoRetryHandler(KaniBaseHandler):
