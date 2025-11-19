@@ -1,14 +1,14 @@
 #!/bin/bash
 #
 #SBATCH --partition=p_nlp
-#SBATCH --job-name=bfcl:Qwen/Qwen3-4B-FC-bfcl
+#SBATCH --job-name=bfcl:run1
 #
 #SBATCH --output=/nlpgpu/data/andrz/logs/%j.%x.log
 #SBATCH --error=/nlpgpu/data/andrz/logs/%j.%x.log
 #SBATCH --time=7-0
 #SBATCH --nodes=1
-#SBATCH -c 8
-#SBATCH --mem=128G
+#SBATCH -c 16
+#SBATCH --mem=256G
 #SBATCH --gpus=8
 #SBATCH --constraint=48GBgpu
 #SBATCH --mail-user=andrz@seas.upenn.edu

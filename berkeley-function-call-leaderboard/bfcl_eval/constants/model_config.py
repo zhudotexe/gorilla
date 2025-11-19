@@ -196,6 +196,18 @@ local_inference_model_map = {
         is_fc_model=True,
         underscore_to_dot=True,
     ),
+    "openai/gpt-oss-120b-FC": ModelConfig(
+        model_name="openai/gpt-oss-120b",
+        display_name="openai/gpt-oss-120b (FC)",
+        url="https://huggingface.co/openai/gpt-oss-120b",
+        org="OpenAI",
+        license="apache-2.0",
+        model_handler=KaniGPTOSSVLLMNoRetryHandler,
+        input_price=None,
+        output_price=None,
+        is_fc_model=True,
+        underscore_to_dot=True,
+    ),
 }
 
 third_party_inference_model_map = {
@@ -312,6 +324,18 @@ third_party_inference_model_map = {
         model_name="openai/gpt-oss-20b",
         display_name="openai/gpt-oss-20b (FC; Kani)",
         url="https://huggingface.co/openai/gpt-oss-20b",
+        org="OpenAI",
+        license="apache-2.0",
+        model_handler=KaniGPTOSSVLLMHandler,
+        input_price=None,
+        output_price=None,
+        is_fc_model=True,
+        underscore_to_dot=True,
+    ),
+    "kani:openai/gpt-oss-120b-FC": ModelConfig(
+        model_name="openai/gpt-oss-120b",
+        display_name="openai/gpt-oss-120b (FC; Kani)",
+        url="https://huggingface.co/openai/gpt-oss-120b",
         org="OpenAI",
         license="apache-2.0",
         model_handler=KaniGPTOSSVLLMHandler,
