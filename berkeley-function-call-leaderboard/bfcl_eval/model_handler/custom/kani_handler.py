@@ -274,7 +274,7 @@ class KaniVLLMHandler(KaniBaseHandler):
         self.vllm_process.process.send_signal(signal.SIGINT)
 
 
-class KaniLlama31VLLMHandler(KaniVLLMHandler):
+class KaniLlama3VLLMHandler(KaniVLLMHandler):
     vllm_args = {
         "tensor_parallel_size": 8,
         "enable_chunked_prefill": True,
@@ -288,23 +288,7 @@ class KaniLlama31VLLMHandler(KaniVLLMHandler):
             vllm_port=self.vllm_process.port,
             temperature=self.temperature,
             use_managed_server=False,
-        )
-
-
-class KaniLlama32VLLMHandler(KaniVLLMHandler):
-    vllm_args = {
-        "tensor_parallel_size": 8,
-        "enable_chunked_prefill": True,
-        "enable-auto-tool-choice": True,
-        "tool-call-parser": "pythonic",
-    }
-
-    def _create_engine(self):
-        return VLLMOpenAIEngine(
-            model_id=self.model_name,
-            vllm_port=self.vllm_process.port,
-            temperature=self.temperature,
-            use_managed_server=False,
+            timeout=86400,
         )
 
 
@@ -320,6 +304,7 @@ class KaniQwen3VLLMHandler(KaniVLLMHandler):
             vllm_port=self.vllm_process.port,
             temperature=self.temperature,
             use_managed_server=False,
+            timeout=86400,
         )
         engine.model = self.model_name
         return Qwen3Parser(engine)
@@ -337,17 +322,14 @@ class KaniGPTOSSVLLMHandler(KaniVLLMHandler):
             vllm_port=self.vllm_process.port,
             temperature=self.temperature,
             use_managed_server=False,
+            timeout=86400,
         )
         engine.model = self.model_name
         return GPTOSSParser(engine)
 
 
 # no retry
-class KaniLlama31VLLMNoRetryHandler(KaniLlama31VLLMHandler, KaniNoRetryHandler):
-    pass
-
-
-class KaniLlama32VLLMNoRetryHandler(KaniLlama32VLLMHandler, KaniNoRetryHandler):
+class KaniLlama3VLLMNoRetryHandler(KaniLlama3VLLMHandler, KaniNoRetryHandler):
     pass
 
 
